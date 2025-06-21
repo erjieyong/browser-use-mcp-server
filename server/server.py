@@ -201,7 +201,7 @@ async def create_browser_context_for_task(
 
 async def run_browser_task_async(
     task_id: str,
-    url: str,
+    # url: str,
     action: str,
     llm: BaseLanguageModel,
     window_width: int = CONFIG["DEFAULT_WINDOW_WIDTH"],
@@ -219,7 +219,7 @@ async def run_browser_task_async(
 
     Args:
         task_id: Unique identifier for the task
-        url: URL to navigate to
+        # url: URL to navigate to
         action: Action to perform after navigation
         llm: Language model to use for browser agent
         window_width: Browser window width
@@ -291,7 +291,8 @@ async def run_browser_task_async(
 
         # Create agent with the fresh context
         agent = Agent(
-            task=f"First, navigate to {url}. Then, {action}",
+            # task=f"First, navigate to {url}. Then, {action}",
+            task = action,
             llm=llm,
             browser_context=context,
             register_new_step_callback=step_callback,
@@ -446,8 +447,8 @@ def create_mcp_server(
         # Handle browser_use tool
         if name == "browser_use":
             # Check required arguments
-            if "url" not in arguments:
-                raise ValueError("Missing required argument 'url'")
+            # if "url" not in arguments:
+            #     raise ValueError("Missing required argument 'url'")
             if "action" not in arguments:
                 raise ValueError("Missing required argument 'action'")
 
@@ -458,7 +459,7 @@ def create_mcp_server(
             task_store[task_id] = {
                 "id": task_id,
                 "status": "pending",
-                "url": arguments["url"],
+                # "url": arguments["url"],
                 "action": arguments["action"],
                 "created_at": datetime.now().isoformat(),
             }
@@ -467,7 +468,7 @@ def create_mcp_server(
             _task = asyncio.create_task(
                 run_browser_task_async(
                     task_id=task_id,
-                    url=arguments["url"],
+                    # url=arguments["url"],
                     action=arguments["action"],
                     llm=llm,
                     window_width=window_width,
@@ -601,12 +602,13 @@ def create_mcp_server(
                     description="Performs a browser action and returns the complete result directly (patient mode active)",
                     inputSchema={
                         "type": "object",
-                        "required": ["url", "action"],
+                        # "required": ["url", "action"],
+                        "required": ["action"],
                         "properties": {
-                            "url": {
-                                "type": "string",
-                                "description": "URL to navigate to",
-                            },
+                            # "url": {
+                            #     "type": "string",
+                            #     "description": "URL to navigate to",
+                            # },
                             "action": {
                                 "type": "string",
                                 "description": "A natural language question or instruction describing what to look for or extract from the webpage (e.g. 'What are the top 3 results?', 'What's the price of item X?', 'Summarize the main points'). Avoid generic commands like 'search' or 'get'.",
@@ -636,12 +638,13 @@ def create_mcp_server(
                     description="Performs a browser action and returns a task ID for async execution",
                     inputSchema={
                         "type": "object",
-                        "required": ["url", "action"],
+                        # "required": ["url", "action"],
+                        "required": ["action"],
                         "properties": {
-                            "url": {
-                                "type": "string",
-                                "description": "URL to navigate to",
-                            },
+                            # "url": {
+                            #     "type": "string",
+                            #     "description": "URL to navigate to",
+                            # },
                             "action": {
                                 "type": "string",
                                 "description": "A natural language question or instruction describing what to look for or extract from the webpage (e.g. 'What are the top 3 results?', 'What's the price of item X?', 'Summarize the main points'). Avoid generic commands like 'search' or 'get'.",
@@ -681,7 +684,7 @@ def create_mcp_server(
                     types.Resource(
                         uri=f"resource://browser_task/{task_id}",
                         title=f"Browser Task Result: {task_id[:8]}",
-                        description=f"Result of browser task for URL: {task_data.get('url', 'unknown')}",
+                        description=f"Result of browser task for action: {task_data.get('action', 'unknown')}",
                     )
                 )
         return resources

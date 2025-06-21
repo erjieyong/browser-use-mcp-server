@@ -609,7 +609,7 @@ def create_mcp_server(
                             },
                             "action": {
                                 "type": "string",
-                                "description": "Action to perform in the browser",
+                                "description": "A natural language question or instruction describing what to look for or extract from the webpage (e.g. 'What are the top 3 results?', 'What's the price of item X?', 'Summarize the main points'). Avoid generic commands like 'search' or 'get'.",
                             },
                         },
                     },
@@ -644,7 +644,7 @@ def create_mcp_server(
                             },
                             "action": {
                                 "type": "string",
-                                "description": "Action to perform in the browser",
+                                "description": "A natural language question or instruction describing what to look for or extract from the webpage (e.g. 'What are the top 3 results?', 'What's the price of item X?', 'Summarize the main points'). Avoid generic commands like 'search' or 'get'.",
                             },
                         },
                     },

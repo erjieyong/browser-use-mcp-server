@@ -37,7 +37,10 @@ from dotenv import load_dotenv
 from langchain_core.language_models import BaseLanguageModel
 
 # LLM provider
-from langchain_openai import ChatOpenAI
+# from langchain_openai import ChatOpenAI
+# https://python.langchain.com/docs/integrations/chat/google_generative_ai/
+from langchain_google_genai import ChatGoogleGenerativeAI
+
 
 # MCP server components
 from mcp.server import Server
@@ -801,7 +804,8 @@ def main(
         )
 
     # Initialize LLM
-    llm = ChatOpenAI(model="gpt-4o", temperature=0.0)
+    # llm = ChatOpenAI(model="gpt-4o", temperature=0.0)
+    llm = ChatGoogleGenerativeAI(model=os.environ.get("MODEL_NAME"))
 
     # Create MCP server
     app = create_mcp_server(

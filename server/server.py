@@ -31,6 +31,7 @@ import uvicorn
 
 # Browser-use library imports
 from browser_use import BrowserSession, BrowserProfile, Agent
+from browser_use import Controller, ActionResult
 # from browser_use.browser.browser import Browser, BrowserConfig
 # from browser_use.browser.context import BrowserContext, BrowserContextConfig
 from dotenv import load_dotenv
@@ -73,6 +74,15 @@ logging.getLogger("mcp").addHandler(handler)
 # Load environment variables
 load_dotenv()
 
+# https://github.com/browser-use/browser-use/issues/1661
+controller = Controller(exclude_actions=['search_google'])
+
+@controller.action('Search Bing for a query')
+async def search_bing(query: str, browser: BrowserSession):
+    page = await browser.get_current_page()
+    await page.goto(f'https://www.bing.com/search?q={query}')
+    await page.wait_for_load_state()
+    return ActionResult(extracted_content=f'Searched Bing for {query}')
 
 def parse_bool_env(env_var: str, default: bool = False) -> bool:
     """
@@ -225,6 +235,7 @@ async def run_browser_task_async(
     task_id: str,
     # url: str,
     action: str,
+    controller: Controller,
     llm: BaseLanguageModel,
     window_width: int = CONFIG["DEFAULT_WINDOW_WIDTH"],
     window_height: int = CONFIG["DEFAULT_WINDOW_HEIGHT"],
@@ -320,6 +331,7 @@ async def run_browser_task_async(
             browser_session=browser_session,
             register_new_step_callback=step_callback,
             register_done_callback=done_callback,
+            controller=controller,
         )
 
         # Run the agent with a reasonable step limit
@@ -427,6 +439,7 @@ async def cleanup_old_tasks() -> None:
 
 def create_mcp_server(
     llm: BaseLanguageModel,
+    controller: Controller,
     task_expiry_minutes: int = CONFIG["DEFAULT_TASK_EXPIRY_MINUTES"],
     window_width: int = CONFIG["DEFAULT_WINDOW_WIDTH"],
     window_height: int = CONFIG["DEFAULT_WINDOW_HEIGHT"],
@@ -492,6 +505,7 @@ def create_mcp_server(
                 run_browser_task_async(
                     task_id=task_id,
                     # url=arguments["url"],
+                    controller=controller,
                     action=arguments["action"],
                     llm=llm,
                     window_width=window_width,
@@ -796,6 +810,7 @@ def main(
     locale: str,
     task_expiry_minutes: int,
     stdio: bool,
+    controller: Controller = controller,
 ) -> int:
     """
     Run the browser-use MCP server.
@@ -836,6 +851,7 @@ def main(
     # Create MCP server
     app = create_mcp_server(
         llm=llm,
+        controller=controller,
         task_expiry_minutes=task_expiry_minutes,
         window_width=window_width,
         window_height=window_height,

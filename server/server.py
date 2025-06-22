@@ -30,9 +30,9 @@ import mcp.types as types
 import uvicorn
 
 # Browser-use library imports
-from browser_use import Agent
-from browser_use.browser.browser import Browser, BrowserConfig
-from browser_use.browser.context import BrowserContext, BrowserContextConfig
+from browser_use import BrowserSession, BrowserProfile, Agent
+# from browser_use.browser.browser import Browser, BrowserConfig
+# from browser_use.browser.context import BrowserContext, BrowserContextConfig
 from dotenv import load_dotenv
 from langchain_core.language_models import BaseLanguageModel
 
@@ -146,7 +146,7 @@ async def create_browser_context_for_task(
     window_width: int = CONFIG["DEFAULT_WINDOW_WIDTH"],
     window_height: int = CONFIG["DEFAULT_WINDOW_HEIGHT"],
     locale: str = CONFIG["DEFAULT_LOCALE"],
-) -> Tuple[Browser, BrowserContext]:
+) -> BrowserSession:
     """
     Create a fresh browser and context for a task.
 
@@ -166,34 +166,56 @@ async def create_browser_context_for_task(
         Exception: If browser or context creation fails
     """
     try:
-        # Create browser configuration
-        browser_config = BrowserConfig(
-            extra_chromium_args=CONFIG["BROWSER_ARGS"],
-        )
+        # # Create browser configuration
+        # browser_config = BrowserConfig(
+        #     extra_chromium_args=CONFIG["BROWSER_ARGS"],
+        # )
 
-        # Set chrome path if provided
-        if chrome_path:
-            browser_config.chrome_instance_path = chrome_path
+        # # Set chrome path if provided
+        # if chrome_path:
+        #     browser_config.chrome_instance_path = chrome_path
 
-        # Create browser instance
-        browser = Browser(config=browser_config)
+        # # Create browser instance
+        # browser = Browser(config=browser_config)
 
-        # Create context configuration
-        context_config = BrowserContextConfig(
+        # # Create context configuration
+        # context_config = BrowserContextConfig(
+            # wait_for_network_idle_page_load_time=0.6,
+            # maximum_wait_page_load_time=1.2,
+            # minimum_wait_page_load_time=0.2,
+            # browser_window_size={"width": window_width, "height": window_height},
+            # locale=locale,
+            # user_agent=CONFIG["DEFAULT_USER_AGENT"],
+            # highlight_elements=True,
+            # viewport_expansion=0,
+        # )
+
+        # Create context with the browser
+        # context = BrowserContext(browser=browser, config=context_config)
+
+        # return browser, context
+
+        browser_profile = BrowserProfile(
             wait_for_network_idle_page_load_time=0.6,
             maximum_wait_page_load_time=1.2,
             minimum_wait_page_load_time=0.2,
-            browser_window_size={"width": window_width, "height": window_height},
+            viewport={"width": window_width, "height": window_height},
             locale=locale,
             user_agent=CONFIG["DEFAULT_USER_AGENT"],
             highlight_elements=True,
             viewport_expansion=0,
+            profile_directory=chrome_path,
+            # storage_state="path/to/storage_state.json",
+            user_data_dir=None,
+            chromium_sandbox=False,
         )
 
-        # Create context with the browser
-        context = BrowserContext(browser=browser, config=context_config)
+        browser_session = BrowserSession(
+            browser_profile=browser_profile,
+            headless=True,                          # extra kwargs to the session override the defaults in the profile
+        )
 
-        return browser, context
+        return browser_session
     except Exception as e:
         logger.error(f"Error creating browser context: {str(e)}")
         raise
@@ -282,19 +304,20 @@ async def run_browser_task_async(
         chrome_path = os.environ.get("CHROME_PATH")
 
         # Create a fresh browser and context for this task
-        browser, context = await create_browser_context_for_task(
+        browser_session = await create_browser_context_for_task(
             chrome_path=chrome_path,
             window_width=window_width,
             window_height=window_height,
             locale=locale,
         )
+        await browser_session.start()
 
         # Create agent with the fresh context
         agent = Agent(
             # task=f"First, navigate to {url}. Then, {action}",
             task = action,
             llm=llm,
-            browser_context=context,
+            browser_session=browser_session,
             register_new_step_callback=step_callback,
             register_done_callback=done_callback,
         )
@@ -353,10 +376,10 @@ async def run_browser_task_async(
     finally:
         # Clean up browser resources
         try:
-            if context:
-                await context.close()
-            if browser:
-                await browser.close()
+            # if context:
+            #     await context.close()
+            if browser_session:
+                await browser_session.close()
             logger.info(f"Browser resources for task {task_id} cleaned up")
         except Exception as e:
             logger.error(
